@@ -1,101 +1,115 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+
+export default function HomePage() {
+  const [characters, setCharacters] = useState<{ name: string; description: string; personality: string }[]>([]);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [personality, setPersonality] = useState("");
+  const [story, setStory] = useState("");
+  const [model, setModel] = useState("gpt-4o-mini");
+  const [isLoading, setIsLoading] = useState(false); // Loading state for story generation
+
+  const handleAddCharacter = () => {
+    if (name && description && personality) {
+      // Add character to state
+      setCharacters([...characters, { name, description, personality }]);
+      // Reset form fields
+      setName("");
+      setDescription("");
+      setPersonality("");
+    } else {
+      alert("Please fill out all fields");
+    }
+  };
+
+  const handleGenerateStory = async () => {
+    setIsLoading(true); // Start loading
+    setStory(""); // Clear previous story
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ characters, model }),
+      });
+
+      const reader = response.body?.getReader();
+      let text = "";
+
+      if (reader) {
+        const decoder = new TextDecoder();
+        let done = false;
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          text += decoder.decode(value, { stream: true });
+          setStory((prev) => prev + decoder.decode(value));
+        }
+      }
+    } catch (error) {
+      console.error("Error generating story:", error);
+      setStory("Failed to generate story. Please try again.");
+    } finally {
+      setIsLoading(false); // Stop loading
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div>
+      <h1>Create Your Story Characters</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div>
+        <input
+          type="text"
+          value={name}
+          placeholder="Name"
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          type="text"
+          value={description}
+          placeholder="Description"
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <input
+          type="text"
+          value={personality}
+          placeholder="Personality"
+          onChange={(e) => setPersonality(e.target.value)}
+        />
+        <button onClick={handleAddCharacter}>Add Character</button>
+      </div>
+
+      <h2>Character List</h2>
+      {characters.length > 0 ? (
+        <ul>
+          {characters.map((char, index) => (
+            <li key={index}>
+              <strong>{char.name}</strong> - {char.description} - {char.personality}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No characters added yet.</p>
+      )}
+
+      <h2>Select Model</h2>
+      <select value={model} onChange={(e) => setModel(e.target.value)}>
+        <option value="gpt-4o-mini">GPT-4o Mini</option>
+        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+        <option value="gpt-4">GPT-4</option>
+      </select>
+
+      <button onClick={handleGenerateStory} disabled={isLoading}>
+        {isLoading ? "Generating..." : "Generate Story"}
+      </button>
+
+      <h2>Generated Story</h2>
+      <pre>{story}</pre>
     </div>
   );
 }
